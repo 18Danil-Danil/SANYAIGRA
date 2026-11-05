@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Симулятор Бомжа: Империя v3.1</title>
+<style>
+:root{
+  --bg:#0e0f13; --panel:#171922; --panel2:#1f2230; --line:#2a2e3d;
+  --txt:#e8eaf2; --dim:#8b90a5; --gold:#f5b942; --green:#38d17a; --red:#f2545b; --blue:#4a9eff;
+  --purple:#a855f7; --pink:#ec4899;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  user-select:none;-webkit-user-select:none}
+#app{display:flex;flex-direction:column;height:100vh;max-width:540px;margin:0 auto;position:relative;background:var(--bg)}
+@supports(height:100dvh){#app{height:100dvh}}
+
+header{flex:0 0 auto;padding:8px 12px;background:#12141b;border-bottom:1px solid var(--line);z-index:10}
+.top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim)}
+.career{color:var(--gold);font-weight:600;display:flex;gap:6px;align-items:center}
+.rate{color:var(--green);font-weight:600}
+.money{font-size:26px;font-weight:800;margin-top:2px;color:#fff;letter-spacing:-.5px}
+
+main{flex:1 1 auto;overflow-y:auto;padding:10px 10px 14px;-webkit-overflow-scrolling:touch}
+.panel{display:none;animation:fade .2s ease}
+.panel.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:14px 0 6px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:8px}
+.note{font-size:11.5px;color:var(--dim);line-height:1.5;margin:0 0 10px}
+
+.sub-tabs{display:flex;gap:4px;margin-bottom:10px;background:var(--panel);padding:4px;border-radius:12px;overflow-x:auto;scrollbar-width:none}
+.sub-tabs::-webkit-scrollbar{display:none}
+.sub-tabs button{padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--dim);
+  font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+.sub-tabs button.on{background:var(--gold);color:#171104}
+
+.clickzone{position:relative;display:flex;justify-content:center;padding:12px 0 6px}
+#clickBtn{width:170px;height:170px;border-radius:50%;border:2px solid #3a3320;font-size:68px;line-height:1;cursor:pointer;
+  background:radial-gradient(circle at 35% 30%,#3a2f18,#1c1a14 70%);color:#fff;touch-action:manipulation;
+  box-shadow:0 0 0 2px #3a3320, 0 0 40px rgba(245,185,66,.15), inset 0 -8px 24px rgba(0,0,0,.6);
+  transition:transform .07s, background .12s}
+#clickBtn:active{transform:scale(.94);background:#4a3a20}
+#clickBtn.flash{background:var(--green);transition:none}
+.float-layer{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:1}
+.float{position:absolute;font-weight:800;font-size:17px;color:var(--gold);text-shadow:0 2px 8px #000;animation:fly 1s ease-out forwards;white-space:nowrap}
+@keyframes fly{0%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-80px)}}
+
+.stat-row{display:flex;gap:8px;margin:8px 0 4px}
+.stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center}
+.stat b{display:block;font-size:15px;color:var(--gold)}
+.stat span{font-size:10px;color:var(--dim)}
+
+.card{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px;margin-bottom:6px}
+.card .ico{font-size:24px;width:32px;text-align:center;flex:0 0 auto}
+.card .info{flex:1 1 auto;min-width:0}
+.card .name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .sub{font-size:10.5px;color:var(--dim);margin-top:2px}
+.card .sub b{color:var(--green);font-weight:600}
+
+.buy{flex:0 0 auto;min-width:80px;padding:7px 9px;border-radius:10px;cursor:pointer;border:1px solid #3b3320;
+  background:linear-gradient(180deg,#33291a,#241e14);color:var(--gold);font-family:inherit;font-size:10.5px;
+  line-height:1.3;font-weight:600;transition:.12s}
+.buy b{display:block;font-size:11px;color:#fff}
+.buy:disabled{opacity:.38;filter:grayscale(1);cursor:default}
+.buy:not(:disabled):active{transform:scale(.95)}
+.buy.green{border-color:#2a5a3a;background:linear-gradient(180deg,#1a3d24,#142b1a);color:var(--green)}
+.buy.blue{border-color:#2a4a6a;background:linear-gradient(180deg,#1a2d4a,#141f2b);color:var(--blue)}
+.buy.red{border-color:#5a2a2a;background:linear-gradient(180deg,#3d1a1a,#2b1414);color:var(--red)}
+.buy.purple{border-color:#5a2a7a;background:linear-gradient(180deg,#3d1a4a,#2b1430);color:var(--purple)}
+
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
+.ach{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 5px;text-align:center}
+.ach .ai{font-size:20px;filter:grayscale(1);opacity:.35}
+.ach .an{font-size:9px;color:var(--dim);margin-top:4px;line-height:1.25}
+.ach.done{border-color:#3b3320;background:linear-gradient(180deg,#241f14,#191712)}
+.ach.done .ai{filter:none;opacity:1}
+.ach.done .an{color:var(--gold)}
+
+.lot-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;position:relative}
+.lot-card.sold-state{border-color:#3b3320;background:linear-gradient(180deg,#241f14,#191712)}
+.lot-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.lot-title{font-size:13px;font-weight:700;flex:1}
+.lot-rarity{font-size:9px;padding:2px 6px;border-radius:8px;font-weight:800;white-space:nowrap}
+.r-common{background:#2a2e3d;color:#8b90a5}
+.r-uncommon{background:#143224;color:#38d17a}
+.r-rare{background:#14243d;color:#4a9eff}
+.r-epic{background:#2e1442;color:#a855f7}
+.r-legendary{background:#3d1a14;color:#f5b942}
+.lot-price-line{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:4px}
+.lot-buy{color:var(--gold);font-weight:700}
+.lot-market{color:var(--dim);font-size:10px}
+.lot-attrs{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:var(--dim);margin-bottom:8px}
+.lot-attrs .attr{background:var(--panel2);border-radius:6px;padding:3px 6px;display:flex;justify-content:space-between}
+.lot-attrs .attr b{color:var(--txt);font-weight:600}
+.progress-bar{height:4px;background:var(--panel2);border-radius:2px;overflow:hidden;margin-top:2px}
+.progress-fill{height:100%;background:var(--green);transition:width .2s}
+.lot-actions{display:flex;gap:4px;flex-wrap:wrap}
+.lot-actions button{flex:1;min-width:60px;padding:6px 4px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.lot-actions button:disabled{opacity:.4}
+.lot-actions button.primary{background:var(--gold);color:#171104;border-color:var(--gold)}
+.lot-actions button.green{background:#1a3d24;color:var(--green);border-color:#2a5a3a}
+.lot-actions button.blue{background:#1a2d4a;color:var(--blue);border-color:#2a4a6a}
+.lot-actions button.red{background:#3d1a1a;color:var(--red);border-color:#5a2a2a}
+
+.skill-row{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px}
+.skill-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.skill-name{font-size:13px;font-weight:600}
+.skill-lvl{font-size:11px;color:var(--gold);font-weight:700}
+.skill-desc{font-size:10.5px;color:var(--dim);margin-bottom:6px}
+.skill-bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.skill-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));transition:width .3s}
+.xp-row{background:var(--panel);border:1px solid var(--gold);border-radius:12px;padding:10px;margin-bottom:10px}
+.xp-row .lvl{font-size:16px;font-weight:800;color:var(--gold)}
+.xp-row .xp-text{font-size:11px;color:var(--dim);margin-top:2px}
+
+.char-hero{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,#241f14,#171922);
+  border:1px solid var(--gold);border-radius:14px;padding:14px;margin-bottom:10px}
+.char-avatar{font-size:56px;line-height:1;filter:drop-shadow(0 4px 12px rgba(245,185,66,.4))}
+.char-meta{flex:1;min-width:0}
+.char-name{font-size:18px;font-weight:800;color:#fff}
+.char-country{font-size:12px;color:var(--gold);margin-top:2px}
+.char-level-tag{font-size:11px;color:var(--dim);margin-top:4px}
+.char-level-row{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin:8px 0 4px}
+.char-level-row b{color:var(--gold)}
+.points-block{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;flex:1}
+.points-block .pb-label{font-size:10px;color:var(--dim)}
+.points-block .pb-value{font-size:18px;font-weight:800;color:var(--gold);margin-top:2px}
+.char-points{display:flex;gap:8px;margin-top:10px}
+.attr-row{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:6px;
+  display:flex;align-items:center;gap:10px}
+.attr-icon{font-size:24px;width:32px;text-align:center}
+.attr-info{flex:1;min-width:0}
+.attr-name{font-size:13px;font-weight:700}
+.attr-desc{font-size:10px;color:var(--dim);margin-top:2px}
+.attr-value{font-size:13px;font-weight:800;color:var(--gold);min-width:48px;text-align:right}
+.attr-up{width:32px;height:32px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:#171104;
+  font-family:inherit;font-size:18px;font-weight:800;cursor:pointer;touch-action:manipulation}
+.attr-up:disabled{opacity:.3}
+
+#creationOverlay{position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;padding:20px 16px 40px;display:block}
+#creationOverlay.hide{display:none}
+.creation-screen{max-width:500px;margin:0 auto}
+.creation-screen .logo{text-align:center;font-size:48px;margin-top:10px}
+.creation-screen h1{font-size:22px;text-align:center;margin:6px 0 4px;
+  background:linear-gradient(90deg,var(--gold),var(--pink));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.creation-screen .subtitle{text-align:center;font-size:12px;color:var(--dim);margin-bottom:20px}
+.creation-screen h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:20px 0 8px}
+.name-input{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  width:100%;font-family:inherit;font-size:14px;color:var(--txt);outline:none}
+.name-input:focus{border-color:var(--gold)}
+.appearance-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.appearance-card{background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:8px 4px;
+  text-align:center;cursor:pointer;transition:.15s;touch-action:manipulation}
+.appearance-card.selected{border-color:var(--gold);background:linear-gradient(180deg,#241f14,#191712)}
+.appearance-card .emoji{font-size:28px;line-height:1}
+.appearance-card .name{font-size:9.5px;font-weight:700;margin-top:4px}
+.appearance-card .bonus{font-size:8.5px;color:var(--green);margin-top:3px;line-height:1.2}
+.country-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.country-card{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:10px;
+  cursor:pointer;transition:.15s;touch-action:manipulation;text-align:left}
+.country-card.selected{border-color:var(--gold);background:linear-gradient(180deg,#241f14,#191712)}
+.country-card .flag{font-size:28px;line-height:1}
+.country-card .name{font-size:13px;font-weight:700;margin-top:2px}
+.country-card .diff{font-size:9px;font-weight:700;margin-top:2px;padding:2px 6px;border-radius:6px;display:inline-block}
+.country-card .desc{font-size:9.5px;color:var(--dim);margin-top:4px;line-height:1.35}
+.country-card .mult{font-size:9px;color:var(--green);margin-top:4px}
+.start-btn{display:block;width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;
+  background:linear-gradient(90deg,var(--gold),#ffcf6e);color:#171104;font-family:inherit;font-weight:800;font-size:15px;
+  margin-top:24px;box-shadow:0 8px 24px rgba(245,185,66,.3)}
+.start-btn:disabled{opacity:.35;box-shadow:none;cursor:not-allowed}
+
+nav{flex:0 0 auto;display:flex;background:#12141b;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0)}
+nav button{flex:1;background:none;border:none;padding:7px 0 8px;cursor:pointer;font-family:inherit;font-size:15px;color:var(--dim);
+  display:flex;flex-direction:column;align-items:center;gap:1px;touch-action:manipulation;position:relative}
+nav button span{font-size:8px;font-weight:600;letter-spacing:.1px}
+nav button.on{color:var(--gold)}
+nav button.on::before{content:'';position:absolute;top:0;width:22px;height:2px;background:var(--gold);border-radius:2px}
+
+#toasts{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:5px;align-items:center;pointer-events:none;width:90%;max-width:400px}
+.toast{background:#241f14;border:1px solid var(--gold);color:var(--gold);padding:7px 12px;border-radius:18px;font-size:11.5px;font-weight:700;animation:toastIn .25s ease, toastOut .3s ease 2.2s forwards;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-14px)}}
+</style>
+</head>
+<body>
+
+<div id="creationOverlay" class="hide">
+  <div class="creation-screen">
+    <div class="logo">🗑️</div>
+    <h1>Симулятор Бомжа</h1>
+    <div class="subtitle">Создай своего героя. Каждый выбор влияет на путь.</div>
+    <h2>Имя персонажа</h2>
+    <input type="text" id="charNameInput" class="name-input" maxlength="15" placeholder="Бомж" value="Бомж">
+    <h2>Внешность (5 вариантов)</h2>
+    <div class="appearance-grid" id="appearanceGrid"></div>
+    <h2>Страна старта</h2>
+    <div class="country-grid" id="countryGrid"></div>
+    <button class="start-btn" id="startGameBtn" onclick="startGameWithCharacter()" disabled>Начать игру</button>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="top">
+      <div class="career"><span id="headerAvatar">🧔</span> <span id="careerName">Бомж</span></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="rate" id="rate">+0 ₽/сек</div>
+        <button style="background:none;border:none;color:var(--dim);font-size:15px;cursor:pointer" onclick="resetGame()">⟳</button>
+      </div>
+    </div>
+    <div class="money" id="money">0 ₽</div>
+  </header>
+
+  <main>
+    <section class="panel active" id="p-work">
+      <div class="clickzone">
+        <div class="float-layer" id="floatLayer"></div>
+        <button id="clickBtn" onclick="doClick(event)">🖐️</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><b id="clickVal">1 ₽</b><span>за клик</span></div>
+        <div class="stat"><b id="clickCount">0</b><span>кликов</span></div>
+      </div>
+      <h3>Улучшения клика</h3>
+      <div id="upgradesList"></div>
+    </section>
+
+    <section class="panel" id="p-biz">
+      <div class="sub-tabs">
+        <button class="on" onclick="switchBizTab('market',this)">🛒 Маркет</button>
+        <button onclick="switchBizTab('pvz',this)">📦 ПВЗ</button>
+      </div>
+      <div id="biz-market">
+        <div class="stat-row">
+          <div class="stat"><b id="mktStock">0</b><span>товар</span></div>
+          <div class="stat"><b id="mktPrice">0 ₽</b><span>цена</span></div>
+          <div class="stat"><b id="mktSales">0</b><span>продаж/сек</span></div>
+          <div class="stat"><b id="mktRevenue">0 ₽</b><span>выручка/сек</span></div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin:10px 0">
+          <label style="display:block;font-size:10.5px;color:var(--dim);margin-bottom:4px">Цена продажи (себест. <span id="mktCost">100 ₽</span>)</label>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+            <input type="range" id="priceSlider" min="50" max="300" value="150" oninput="updateMarketPrice(this.value)" style="flex:1">
+            <b id="priceLabel" style="color:var(--gold);min-width:55px;text-align:right;font-size:12px">150 ₽</b>
+          </div>
+          <label style="display:block;font-size:10.5px;color:var(--dim);margin-bottom:4px">Реклама (₽/сек)</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" id="adInput" value="0" min="0" step="10" onchange="updateAdBudget(this.value)" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-family:inherit;font-size:13px">
+            <button class="buy green" onclick="buyStock()">Закуп 10 шт<b id="stockCost">1000 ₽</b></button>
+          </div>
+        </div>
+        <h3>Улучшения</h3>
+        <div id="marketUpgrades"></div>
+      </div>
+      <div id="biz-pvz" style="display:none">
+        <div class="stat-row">
+          <div class="stat"><b id="pvzOrders">0</b><span>заказов/сек</span></div>
+          <div class="stat"><b id="pvzIncome">0 ₽</b><span>доход/сек</span></div>
+          <div class="stat"><b id="pvzEmployees">0</b><span>сотрудников</span></div>
+          <div class="stat"><b id="pvzLevel">—</b><span>уровень</span></div>
+        </div>
+        <p class="note">ПВЗ нужно сначала открыть. Каждый заказ приносит 50 ₽ комиссии.</p>
+        <div id="pvzUpgrades"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="p-resale">
+      <div class="sub-tabs" id="resaleSubTabs">
+        <button class="on" onclick="switchResaleTab('clothes',this)">👕 Одежда</button>
+        <button onclick="switchResaleTab('cars',this)">🚗 Авто</button>
+        <button onclick="switchResaleTab('electronics',this)">📱 Электроника</button>
+        <button onclick="switchResaleTab('antiques',this)">🏺 Антиквариат</button>
+        <button onclick="switchResaleTab('dev',this)">⚙️ Развитие</button>
+      </div>
+      <div id="resale-market">
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:11px;color:var(--dim)">Уровень перекупа</div>
+            <div style="font-size:16px;font-weight:800;color:var(--gold)"><span id="resaleLevel">1</span> · <span id="resaleXPText" style="font-size:11px;color:var(--dim)">0 XP</span></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--dim)">Слоты</div>
+            <div style="font-size:14px;font-weight:700"><span id="resaleSlots">0</span> / <span id="resaleSlotsMax">6</span></div>
+          </div>
+        </div>
+        <p class="note">Лоты обновляются каждые 45 сек.</p>
+        <div id="resaleLots"></div>
+        <h3>Мои активы</h3>
+        <div id="resaleInventory"></div>
+      </div>
+      <div id="resale-dev" style="display:none">
+        <div class="xp-row">
+          <div class="lvl">Уровень <span id="devLevel">1</span></div>
+          <div class="xp-text"><span id="devXP">0</span> / <span id="devXPNext">500</span> XP до следующего уровня</div>
+          <div class="progress-bar" style="height:6px;margin-top:6px"><div class="progress-fill" id="devXPBar" style="width:0%"></div></div>
+          <div style="margin-top:8px;font-size:11px;color:var(--dim)">Очки навыков: <b id="devSkillPoints" style="color:var(--gold);font-size:14px">0</b></div>
+        </div>
+        <h3>Навыки</h3>
+        <div id="skillsList"></div>
+        <h3>Автоматизация</h3>
+        <div id="agentsList"></div>
+        <h3>Магазин</h3>
+        <div id="shopList"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="p-inv">
+      <div class="panel-head"><span>Инвестиции</span><span id="invTotal">0 ₽</span></div>
+      <p class="note">Вложенные деньги работают круглосуточно. Вклад можно забрать в любой момент.</p>
+      <div id="invList"></div>
+    </section>
+
+    <section class="panel" id="p-char">
+      <div class="char-hero">
+        <div class="char-avatar" id="charAvatar">🧔</div>
+        <div class="char-meta">
+          <div class="char-name" id="charName">Бомж</div>
+          <div class="char-country" id="charCountryDisplay">🇷🇺 Россия</div>
+          <div class="char-level-tag">Карьера: <span id="careerInlineName">Бомж</span></div>
+        </div>
+      </div>
+      <div class="char-level-row">
+        <span>Уровень <b id="charLevel">1</b></span>
+        <span>XP: <b id="charXPCurrent">0</b>/<b id="charXPNext">500</b></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="charXPBar" style="width:0%"></div></div>
+      <div class="char-points">
+        <div class="points-block">
+          <div class="pb-label">Очки атрибутов</div>
+          <div class="pb-value" id="charAttrPoints">0</div>
+        </div>
+        <div class="points-block">
+          <div class="pb-label">Очки навыков (ресейл)</div>
+          <div class="pb-value" id="charSkillPoints">0</div>
+        </div>
+      </div>
+      <h3>Атрибуты</h3>
+      <div id="attributesList"></div>
+    </section>
+
+    <section class="panel" id="p-ach">
+      <div class="panel-head"><span>Достижения</span><span id="achCount">0 / 0</span></div>
+      <p class="note">Каждое достижение даёт <b style="color:var(--gold)">+2%</b> ко всему доходу.</p>
+      <div class="ach-grid" id="achGrid"></div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="on" onclick="showTab('work',this)">🖐️<span>Работа</span></button>
+    <button onclick="showTab('biz',this)">🏢<span>Бизнес</span></button>
+    <button onclick="showTab('resale',this)">💱<span>Ресейл</span></button>
+    <button onclick="showTab('inv',this)">📈<span>Инвест</span></button>
+    <button onclick="showTab('char',this)">🧑<span>Персонаж</span></button>
+    <button onclick="showTab('ach',this)">🏆<span>Награды</span></button>
+  </nav>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* =====================================================
+   СИМУЛЯТОР БОМЖА: ИМПЕРИЯ v3.1 — ФИКС ДОХОДА
+   ===================================================== */
+
+window.onerror = function(msg, src, line){
+  console.error('❌', msg, '| строка', line);
+  alert('Ошибка: ' + msg + '\nСтрока: ' + line);
+  return false;
+};
+
+const SAVE_KEY = 'bum_sim_v3';
+
+const APPEARANCES = [
+  {id:'bearded', icon:'🧔', name:'Бородач', desc:'Крепкий', bonuses:{str:3, luck:1}},
+  {id:'young', icon:'👨', name:'Молодой', desc:'Шустрый', bonuses:{dex:3, int:1}},
+  {id:'old', icon:'👴', name:'Старик', desc:'Мудрый', bonuses:{int:3, cha:1}},
+  {id:'girl', icon:'👩', name:'Девушка', desc:'Обаятельная', bonuses:{cha:3, dex:1}},
+  {id:'hipster', icon:'🧑', name:'Хипстер', desc:'Чуйка', bonuses:{luck:3, cha:1}}
+];
+
+const COUNTRIES = [
+  {id:'ru', flag:'🇷🇺', name:'Россия', diff:'Средне', diffColor:'#f5b942',
+   startMoney:0, incomeMult:1.0, costMult:1.0, luck:0, desc:'Классика. Без бонусов.'},
+  {id:'us', flag:'🇺🇸', name:'США', diff:'Сложно', diffColor:'#f2545b',
+   startMoney:100, incomeMult:1.5, costMult:1.4, luck:0, desc:'Высокий потолок, дорого.'},
+  {id:'de', flag:'🇩🇪', name:'Германия', diff:'Легко', diffColor:'#38d17a',
+   startMoney:1000, incomeMult:1.0, costMult:0.9, luck:0, desc:'Соцпомощь.'},
+  {id:'in', flag:'🇮🇳', name:'Индия', diff:'Средне', diffColor:'#f5b942',
+   startMoney:0, incomeMult:0.7, costMult:0.6, luck:0, desc:'Всё дешевле.'},
+  {id:'br', flag:'🇧🇷', name:'Бразилия', diff:'Хардкор', diffColor:'#a855f7',
+   startMoney:0, incomeMult:1.4, costMult:1.2, luck:10, desc:'Хаос + удача.'}
+];
+
+const ATTRIBUTES = {
+  str: {icon:'💪', name:'Сила', desc:'+5% к силе клика'},
+  dex: {icon:'🏃', name:'Ловкость', desc:'+5% к скорости продаж'},
+  int: {icon:'🧠', name:'Интеллект', desc:'+5% инвестиции, +2% XP'},
+  cha: {icon:'💬', name:'Обаяние', desc:'+2% торг, +3% цене'},
+  luck:{icon:'🍀', name:'Удача', desc:'+1% редкие лоты, +2% крит'}
+};
+const ATTR_MAX = 20;
+
+const CLICK_UPGRADES = [
+  {id:'boots', icon:'🥾', name:'Крепкие ботинки', cost:100, mult:2},
+  {id:'gloves', icon:'🧤', name:'Рабочие перчатки', cost:1e3, mult:2},
+  {id:'cart', icon:'🛒', name:'Тележка', cost:1e4, mult:2},
+  {id:'phone', icon:'📱', name:'Смартфон', cost:1e5, mult:3},
+  {id:'ties', icon:'🤝', name:'Связи', cost:1e6, mult:3},
+  {id:'case', icon:'💼', name:'Портфель', cost:1e7, mult:5}
+];
+
+const INVESTMENTS = [
+  {id:'stocks', icon:'📈', name:'Акции', rate:0.0020, min:1e3},
+  {id:'realty', icon:'🏠', name:'Недвижимость', rate:0.0035, min:1e6},
+  {id:'crypto', icon:'₿', name:'Криптовалюта', rate:0.0060, min:1e9}
+];
+
+const CAREER = [
+  {at:0, icon:'🗑️', name:'Бомж'},
+  {at:1e3, icon:'🧦', name:'Бродяга'},
+  {at:1e4, icon:'🥾', name:'Работяга'},
+  {at:1e5, icon:'🧰', name:'Мастер на все руки'},
+  {at:1e6, icon:'💼', name:'Мелкий предприниматель'},
+  {at:1e7, icon:'🏪', name:'Владелец бизнеса'},
+  {at:1e8, icon:'🏢', name:'Бизнесмен'},
+  {at:1e9, icon:'💰', name:'Миллионер'},
+  {at:1e10, icon:'🏦', name:'Магнат'},
+  {at:1e11, icon:'🚁', name:'Миллиардер'},
+  {at:1e12, icon:'👑', name:'Триллионер'},
+  {at:1e15, icon:'🌍', name:'Империя'}
+];
+
+const RESALE_CATS = {
+  clothes: {icon:'👕', name:'Одежда', unlock:1, pool:[
+    {name:'Кроссовки Nike', icon:'👟', base:3500, brand:'Nike'},
+    {name:'Куртка TNF', icon:'🧥', base:9000, brand:'TNF'},
+    {name:'Джинсы Levi\'s', icon:'👖', base:4500, brand:'Levi\'s'},
+    {name:'Худи Supreme', icon:'👕', base:28000, brand:'Supreme'},
+    {name:'Сумка LV', icon:'👜', base:60000, brand:'LV'},
+    {name:'Часы Casio', icon:'⌚', base:8000, brand:'Casio'},
+    {name:'Очки Ray-Ban', icon:'🕶️', base:12000, brand:'Ray-Ban'},
+    {name:'Ботинки Dr.M', icon:'🥾', base:11000, brand:'Dr.M'}
+  ]},
+  cars: {icon:'🚗', name:'Авто', unlock:3, pool:[
+    {name:'Lada Granta', icon:'🚗', base:280000, brand:'Lada'},
+    {name:'Kia Rio', icon:'🚙', base:600000, brand:'Kia'},
+    {name:'Hyundai Solaris', icon:'🚗', base:750000, brand:'Hyundai'},
+    {name:'Toyota Camry', icon:'🚘', base:1600000, brand:'Toyota'},
+    {name:'BMW 3 Series', icon:'🏎️', base:2400000, brand:'BMW'},
+    {name:'Mercedes C', icon:'🚘', base:3000000, brand:'Mercedes'},
+    {name:'Porsche 911', icon:'🏎️', base:6000000, brand:'Porsche'},
+    {name:'Audi Q7', icon:'🚙', base:4200000, brand:'Audi'}
+  ]},
+  electronics: {icon:'📱', name:'Электроника', unlock:5, pool:[
+    {name:'iPhone 13 Pro', icon:'📱', base:55000, brand:'Apple'},
+    {name:'MacBook Pro', icon:'💻', base:130000, brand:'Apple'},
+    {name:'PlayStation 5', icon:'🎮', base:55000, brand:'Sony'},
+    {name:'Samsung S22', icon:'📱', base:65000, brand:'Samsung'},
+    {name:'DJI Mavic 3', icon:'🚁', base:180000, brand:'DJI'},
+    {name:'Canon EOS R5', icon:'📷', base:280000, brand:'Canon'},
+    {name:'iPad Pro', icon:'📱', base:90000, brand:'Apple'},
+    {name:'RTX 4090', icon:'🖥️', base:180000, brand:'NVIDIA'}
+  ]},
+  antiques: {icon:'🏺', name:'Антиквариат', unlock:8, pool:[
+    {name:'Картина', icon:'🖼️', base:50000, brand:'Art'},
+    {name:'Старинные часы', icon:'🕰️', base:120000, brand:'Antique'},
+    {name:'Фарфоровая ваза', icon:'🏺', base:80000, brand:'Antique'},
+    {name:'Монеты XIX века', icon:'🪙', base:35000, brand:'Coin'},
+    {name:'Винил Beatles', icon:'💿', base:150000, brand:'Music'},
+    {name:'Серебряный сервиз', icon:'🍽️', base:200000, brand:'Silver'},
+    {name:'Бронзовая статуэтка', icon:'🗿', base:400000, brand:'Bronze'},
+    {name:'Персидский ковёр', icon:'🧵', base:600000, brand:'Rug'}
+  ]}
+};
+
+const RARITY = {
+  common:    {name:'Обычный',   color:'r-common',    mult:1.0, weight:50, xpMult:1},
+  uncommon:  {name:'Необычный', color:'r-uncommon',  mult:1.2, weight:30, xpMult:1.5},
+  rare:      {name:'Редкий',    color:'r-rare',      mult:1.5, weight:13, xpMult:2.5},
+  epic:      {name:'Эпик',      color:'r-epic',      mult:2.0, weight:5,  xpMult:4},
+  legendary: {name:'Легенда',   color:'r-legendary', mult:3.0, weight:2,  xpMult:8}
+};
+
+const DEFECTS_POOL = [
+  {name:'Потертости', cost:0.03, cond:-10},
+  {name:'Пятна', cost:0.04, cond:-12},
+  {name:'Царапины', cost:0.05, cond:-15},
+  {name:'Запах', cost:0.02, cond:-8},
+  {name:'Нет бирки', cost:0.03, cond:-5},
+  {name:'Трещина', cost:0.08, cond:-22}
+];
+
+const SKILLS = {
+  trade:     {name:'Торговля', icon:'🤝', desc:'Снижает цену покупки', max:20},
+  repair:    {name:'Ремонт', icon:'🔧', desc:'Снижает стоимость ремонта', max:20},
+  marketing: {name:'Маркетинг', icon:'📢', desc:'Ускоряет продажи', max:20},
+  reputation:{name:'Репутация', icon:'⭐', desc:'Открывает категории', max:20}
+};
+
+/* ---------- ФИКС: ПВЗ стартует с 0, а не с 1 ---------- */
+function defaultState(){
+  return {
+    money: 0, totalEarned: 0, clicks: 0, clickMult: 1,
+    upg: {}, inv: {}, ach: {},
+    biz: {
+      market: {stock:0, price:150, adBudget:0, sales:0, revenue:0, upgrades:{}},
+      pvz: {level:0, employees:0, ordersPerSec:0, income:0}
+    },
+    resale: {
+      lots: [], inventory: [],
+      skillPoints: 0,
+      skills: {trade:0, repair:0, marketing:0, reputation:0},
+      agents: 0, shopLevel: 0, lastLotRefresh: 0,
+      unlockedCats: {clothes:true, cars:false, electronics:false, antiques:false}
+    },
+    character: null,
+    lastSave: Date.now()
+  };
+}
+
+let S = defaultState();
+let currentBizTab = 'market';
+let currentResaleTab = 'clothes';
+let gameInterval = null;
+
+const $ = id => document.getElementById(id);
+const UNITS = ['', ' тыс', ' млн', ' млрд', ' трлн', ' квдр', ' квнт'];
+function fmt(n){
+  if(!isFinite(n)) return '∞';
+  if(n < 0) return '-' + fmt(-n);
+  if(n < 1000) return (n < 10 ? Math.round(n*10)/10 : Math.floor(n)).toString().replace('.', ',');
+  let i = 0;
+  while(n >= 1000 && i < UNITS.length - 1){ n /= 1000; i++; }
+  const s = n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : String(Math.floor(n));
+  return s.replace('.', ',') + UNITS[i];
+}
+const rub = n => fmt(n) + ' ₽';
+
+function getCountry(){ return COUNTRIES.find(c => c.id === (S.character ? S.character.country : 'ru')); }
+function countryIncome(){ return getCountry().incomeMult; }
+function countryCost(){ return getCountry().costMult; }
+function countryLuck(){ return getCountry().luck || 0; }
+function applyCost(n){ return Math.floor(n * countryCost()); }
+function getAttr(key){ return S.character ? S.character.attributes[key] : 5; }
+
+function totalInvested(){ let s = 0; for(let k in S.inv) s += S.inv[k]; return s; }
+function achCount(){ let c = 0; for(let k in S.ach) if(S.ach[k]) c++; return c; }
+function globalMult(){ return 1 + 0.02 * achCount(); }
+
+function careerIndex(){
+  let idx = 0;
+  for(let i = 0; i < CAREER.length; i++) if(S.totalEarned >= CAREER[i].at) idx = i;
+  return idx;
+}
+
+function businessIncome(){
+  return (S.biz.market.revenue || 0) + (S.biz.pvz.income || 0);
+}
+function investIncome(){
+  let s = 0;
+  const intBonus = 1 + Math.max(0, getAttr('int') - 5) * 0.05;
+  for(let i of INVESTMENTS) s += (S.inv[i.id] || 0) * i.rate;
+  return s * intBonus;
+}
+function incomePerSec(){ return (businessIncome() + investIncome()) * globalMult() * countryIncome(); }
+function clickValue(){
+  const strBonus = 1 + Math.max(0, getAttr('str') - 5) * 0.05;
+  return S.clickMult * strBonus + incomePerSec() * 0.05;
+}
+
+/* ---------- ДОСТИЖЕНИЯ ---------- */
+const ACH = [];
+function addAch(id, icon, name, check){ ACH.push({id, icon, name, check}); }
+
+const milestones = [10,100,1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10,1e11,1e12,1e15];
+const mileIcons = ['🪙','💵','💸','💰','🏦','💎','🏠','🏢','🚀','🛥️','✈️','👑','🌍'];
+const mileNames = ['Первая копейка','Сотня','Тысяча','10 тысяч','100 тысяч','Миллион','10 миллионов','100 миллионов','Миллиард','10 миллиардов','100 миллиардов','Триллион','Квадриллион'];
+milestones.forEach((v,i) => addAch('m'+v, mileIcons[i], mileNames[i], s => s.totalEarned >= v));
+
+[1,10,50,200,1000,5000,20000].forEach((v,i) => {
+  const icons = ['👆','👆','🖐️','✋','💪','🔥','🤖'];
+  const names = ['Первый клик','10 кликов','50 кликов','200 кликов','1000 кликов','5000 кликов','20000 кликов'];
+  addAch('c'+v, icons[i], names[i], s => s.clicks >= v);
+});
+
+addAch('inv1','📈','Первые инвестиции', () => totalInvested() > 0);
+addAch('biz1','🛒','Первый заказ на маркетплейсе', () => S.biz.market.sales > 0);
+addAch('biz2','📦','Первый заказ в ПВЗ', () => S.biz.pvz.ordersPerSec > 0);
+addAch('res1','👕','Первая перепродажа', () => S.resale.inventory.some(i => i.sold));
+addAch('resLvl5','🏅','Уровень 5', () => S.character && S.character.level >= 5);
+addAch('resLvl10','🎖️','Уровень 10', () => S.character && S.character.level >= 10);
+addAch('resLvl20','🏆','Уровень 20', () => S.character && S.character.level >= 20);
+addAch('skillMax','💯','Навык на максимуме', () => Object.values(S.resale.skills).some(v => v >= 20));
+addAch('attrMax','🔥','Атрибут на максимуме', () => S.character && Object.values(S.character.attributes).some(v => v >= 20));
+addAch('agent1','🕵️','Первый агент', () => S.resale.agents >= 1);
+addAch('shop1','🏬','Свой магазин', () => S.resale.shopLevel >= 1);
+addAch('allupg','⚡','Все улучшения клика', () => CLICK_UPGRADES.every(u => S.upg[u.id]));
+
+/* ---------- СОХРАНЕНИЕ ---------- */
+function save(){
+  S.lastSave = Date.now();
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){}
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(data.character){
+      Object.assign(S, data);
+      if(!S.biz) S.biz = {};
+      if(!S.biz.market) S.biz.market = {stock:0, price:150, adBudget:0, sales:0, revenue:0, upgrades:{}};
+      if(!S.biz.pvz) S.biz.pvz = {level:0, employees:0, ordersPerSec:0, income:0};
+      if(!S.resale) S.resale = {};
+      if(!S.resale.skills) S.resale.skills = {trade:0, repair:0, marketing:0, reputation:0};
+      if(!S.resale.unlockedCats) S.resale.unlockedCats = {clothes:true, cars:false, electronics:false, antiques:false};
+      if(!S.resale.lots) S.resale.lots = [];
+      if(!S.resale.inventory) S.resale.inventory = [];
+
+      /* МИГРАЦИЯ: если ПВЗ был уровень 1 без сотрудников — это был баг. Сбрасываем */
+      if(S.biz.pvz.level === 1 && S.biz.pvz.employees === 0 && !S.biz.pvz._migrated){
+        S.biz.pvz.level = 0;
+        S.biz.pvz.income = 0;
+        S.biz.pvz.ordersPerSec = 0;
+        S.biz.pvz._migrated = true;
+      }
+    } else {
+      localStorage.removeItem(SAVE_KEY);
+      S = defaultState();
+    }
+  }catch(e){ console.warn('Load error:', e); }
+}
+
+function applyOffline(){
+  const now = Date.now();
+  let dt = (now - (S.lastSave || now)) / 1000;
+  if(dt > 60){
+    dt = Math.min(dt, 8 * 3600);
+    const gain = incomePerSec() * dt * 0.5;
+    if(gain > 1){
+      S.money += gain;
+      S.totalEarned += gain;
+      setTimeout(() => toast('💤 Пока вас не было: +' + rub(gain)), 600);
+    }
+  }
+}
+
+/* ---------- КЛИК ---------- */
+function doClick(ev){
+  try{
+    const v = clickValue();
+    S.money += v; S.totalEarned += v; S.clicks++;
+    spawnFloat(ev, '+' + fmt(v));
+    flashBtn(); updateUI();
+  }catch(e){ console.error(e); }
+}
+function flashBtn(){ const b = $('clickBtn'); b.classList.add('flash'); setTimeout(() => b.classList.remove('flash'), 80); }
+function spawnFloat(ev, text){
+  try{
+    const layer = $('floatLayer');
+    const rect = layer.getBoundingClientRect();
+    let x = rect.width/2, y = rect.height/2;
+    if(ev && typeof ev.clientX === 'number' && ev.clientX > 0){ x = ev.clientX - rect.left; y = ev.clientY - rect.top; }
+    const d = document.createElement('div');
+    d.className = 'float'; d.textContent = text;
+    d.style.left = x + 'px'; d.style.top = y + 'px'; layer.appendChild(d);
+    setTimeout(() => d.remove(), 1000);
+  }catch(e){}
+}
+
+/* ---------- МАРКЕТ ---------- */
+function updateMarketPrice(val){
+  S.biz.market.price = parseInt(val);
+  $('priceLabel').textContent = rub(val);
+  updateMarketStats();
+}
+function updateAdBudget(val){
+  S.biz.market.adBudget = Math.max(0, parseInt(val) || 0);
+  updateMarketStats();
+}
+function buyStock(){
+  const c = applyCost(1000);
+  if(S.money < c) return;
+  S.money -= c; S.biz.market.stock += 10;
+  updateUI(); save();
+}
+function updateMarketStats(){
+  const m = S.biz.market;
+  $('mktStock').textContent = Math.floor(m.stock);
+  $('mktPrice').textContent = rub(m.price);
+  $('mktCost').textContent = rub(applyCost(100));
+  const priceFactor = Math.max(0, 1 - (m.price - 100) / 200);
+  const adFactor = 1 + (m.adBudget / 1000);
+  const maxSales = Math.floor(5 * priceFactor * adFactor);
+  m.sales = Math.min(m.stock, maxSales);
+  m.revenue = m.sales * m.price;
+  $('mktSales').textContent = Math.floor(m.sales * 10) / 10;
+  $('mktRevenue').textContent = rub(m.revenue);
+}
+function buyMarketUpgrade(id){
+  const m = S.biz.market;
+  if(m.upgrades[id]) return;
+  const baseCosts = {warehouse:5000, logistics:20000, brand:100000};
+  const cost = applyCost(baseCosts[id]);
+  if(S.money < cost) return;
+  S.money -= cost; m.upgrades[id] = true;
+  updateUI(); save();
+}
+
+/* ---------- ПВЗ ---------- */
+function updatePvzStats(){
+  const p = S.biz.pvz;
+  p.ordersPerSec = Math.floor(p.level * 2 + p.employees * 1.5);
+  p.income = p.ordersPerSec * 50;
+  $('pvzOrders').textContent = p.ordersPerSec;
+  $('pvzIncome').textContent = rub(p.income);
+  $('pvzEmployees').textContent = p.employees;
+  $('pvzLevel').textContent = p.level === 0 ? '—' : p.level;
+}
+function hirePvzEmployee(){
+  if(S.biz.pvz.level === 0){ toast('❌ Сначала откройте ПВЗ'); return; }
+  const cost = applyCost(10000 * (S.biz.pvz.employees + 1));
+  if(S.money < cost) return;
+  S.money -= cost; S.biz.pvz.employees++;
+  updateUI(); save();
+}
+function upgradePvz(){
+  const cost = applyCost(50000 * (S.biz.pvz.level + 1));
+  if(S.money < cost) return;
+  S.money -= cost;
+  const wasClosed = S.biz.pvz.level === 0;
+  S.biz.pvz.level++;
+  S.biz.pvz._migrated = true;
+  if(wasClosed) toast('🎉 ПВЗ открыт!');
+  updateUI(); save();
+}
+
+/* ---------- РЕСЕЙЛ ---------- */
+function pickRarity(){
+  const attrLuck = Math.max(0, getAttr('luck') - 5);
+  const cLuck = countryLuck();
+  const luckBonus = attrLuck * 0.5 + cLuck * 0.05;
+  const weights = {
+    common: Math.max(5, 50 - luckBonus * 2),
+    uncommon: 30 + luckBonus * 0.5,
+    rare: 13 + luckBonus * 0.8,
+    epic: 5 + luckBonus * 0.5,
+    legendary: 2 + luckBonus * 0.3
+  };
+  const total = Object.values(weights).reduce((s,w) => s + w, 0);
+  let r = Math.random() * total;
+  for(let k in weights){ r -= weights[k]; if(r <= 0) return k; }
+  return 'common';
+}
+
+function generateLots(){
+  const newLots = [];
+  for(let catKey in RESALE_CATS){
+    if(!S.resale.unlockedCats[catKey]) continue;
+    const cat = RESALE_CATS[catKey];
+    for(let i = 0; i < 3; i++){
+      const template = cat.pool[Math.floor(Math.random() * cat.pool.length)];
+      const rarityKey = pickRarity();
+      const rarity = RARITY[rarityKey];
+      const basePrice = Math.floor(template.base * rarity.mult);
+      const discountTrade = 1 - S.resale.skills.trade * 0.015;
+      const rawPrice = basePrice * (0.45 + Math.random() * 0.4);
+      const buyPrice = Math.floor(rawPrice * discountTrade);
+      const condition = Math.floor(40 + Math.random() * 55);
+      const completeness = Math.floor(50 + Math.random() * 50);
+      const defectsCount = Math.floor(Math.random() * 3);
+      const defects = [];
+      const used = {};
+      for(let d = 0; d < defectsCount; d++){
+        const def = DEFECTS_POOL[Math.floor(Math.random() * DEFECTS_POOL.length)];
+        if(used[def.name]) continue;
+        used[def.name] = true;
+        defects.push({name:def.name, cost:Math.floor(basePrice * def.cost), cond:def.cond});
+      }
+      const demand = 0.6 + Math.random() * 1.4;
+      newLots.push({
+        id: 'lot_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+        category: catKey, name: template.name, icon: template.icon, brand: template.brand,
+        base: basePrice, buyPrice: buyPrice, condition, completeness, defects, demand,
+        rarity: rarityKey, haggleTried: false
+      });
+    }
+  }
+  S.resale.lots = newLots;
+  S.resale.lastLotRefresh = Date.now();
+}
+
+function haggle(lotId){
+  const lot = S.resale.lots.find(l => l.id === lotId);
+  if(!lot || lot.haggleTried) return;
+  lot.haggleTried = true;
+  const chaBonus = Math.max(0, getAttr('cha') - 5) * 0.02;
+  const chance = 0.25 + S.resale.skills.trade * 0.03 + chaBonus;
+  if(Math.random() < chance){
+    lot.buyPrice = Math.floor(lot.buyPrice * (0.6 + Math.random() * 0.2));
+    toast('🤝 Торг успешен! ' + rub(lot.buyPrice));
+  } else {
+    toast('❌ Продавец не уступил');
+  }
+  updateUI(); save();
+}
+function getSlotsMax(){ return 6 + Math.floor(S.character.level / 2); }
+function buyLot(lotId){
+  const idx = S.resale.lots.findIndex(l => l.id === lotId);
+  if(idx === -1) return;
+  const lot = S.resale.lots[idx];
+  if(S.money < lot.buyPrice) return;
+  if(S.resale.inventory.filter(i => !i.sold).length >= getSlotsMax()){ toast('❌ Нет слотов'); return; }
+  S.money -= lot.buyPrice;
+  S.resale.lots.splice(idx, 1);
+  S.resale.inventory.push({
+    ...lot, boughtAt: Date.now(), sold: false, listed: false,
+    listedPrice: 0, photoQuality: 0, promoLevel: 0, repairedCount: 0, cleanedCount: 0
+  });
+  updateUI(); save();
+}
+function repairItem(idx){
+  const item = S.resale.inventory[idx];
+  if(!item || item.sold) return;
+  const cost = Math.max(10, Math.floor(item.base * 0.15 * (1 - S.resale.skills.repair * 0.04)));
+  if(S.money < cost) return;
+  S.money -= cost;
+  const boost = Math.min(100 - item.condition, 15 + S.resale.skills.repair);
+  item.condition = Math.min(100, item.condition + boost);
+  item.repairedCount++;
+  updateUI(); save();
+}
+function cleanItem(idx){
+  const item = S.resale.inventory[idx];
+  if(!item || item.sold) return;
+  const cost = Math.max(5, Math.floor(item.base * 0.04 * (1 - S.resale.skills.repair * 0.03)));
+  if(S.money < cost) return;
+  S.money -= cost;
+  item.condition = Math.min(100, item.condition + 5 + S.resale.skills.repair * 0.5);
+  item.cleanedCount++;
+  updateUI(); save();
+}
+function fixDefect(idx, defectIdx){
+  const item = S.resale.inventory[idx];
+  if(!item || item.sold) return;
+  const def = item.defects[defectIdx];
+  if(!def) return;
+  const cost = Math.max(10, Math.floor(def.cost * (1 - S.resale.skills.repair * 0.04)));
+  if(S.money < cost) return;
+  S.money -= cost;
+  item.condition = Math.min(100, item.condition - def.cond);
+  item.defects.splice(defectIdx, 1);
+  updateUI(); save();
+}
+function photoItem(idx){
+  const item = S.resale.inventory[idx];
+  if(!item || item.sold || item.photoQuality >= 100) return;
+  const cost = Math.max(20, Math.floor(item.base * 0.08));
+  if(S.money < cost) return;
+  S.money -= cost;
+  item.photoQuality = Math.min(100, item.photoQuality + 25 + S.resale.skills.marketing * 2);
+  updateUI(); save();
+}
+function promoteItem(idx){
+  const item = S.resale.inventory[idx];
+  if(!item || item.sold || item.promoLevel >= 3) return;
+  const cost = Math.floor(item.base * 0.1 * (item.promoLevel + 1));
+  if(S.money < cost) return;
+  S.money -= cost;
+  item.promoLevel++;
+  updateUI(); save();
+}
+function calcListPrice(item){
+  const condFactor = 0.3 + (item.condition / 100) * 0.7;
+  const complFactor = 0.7 + (item.completeness / 100) * 0.3;
+  const photoFactor = 1 + (item.photoQuality / 100) * 0.25;
+  const promoFactor = 1 + item.promoLevel * 0.1;
+  const marketingFactor = 1 + S.resale.skills.marketing * 0.02;
+  const chaBonus = 1 + Math.max(0, getAttr('cha') - 5) * 0.03;
+  return Math.floor(item.base * condFactor * complFactor * photoFactor * promoFactor * marketingFactor * item.demand * chaBonus);
+}
+function listItem(idx){
+  const item = S.resale.inventory[idx];
+  if(!item || item.sold || item.listed) return;
+  const maxListed = 3 + S.character.level;
+  if(S.resale.inventory.filter(i => i.listed && !i.sold).length >= maxListed){ toast('❌ Витрина переполнена'); return; }
+  item.listedPrice = calcListPrice(item);
+  item.listed = true;
+  updateUI(); save();
+}
+function unlistItem(idx){
+  const item = S.resale.inventory[idx];
+  if(!item || !item.listed) return;
+  item.listed = false; item.listedPrice = 0;
+  updateUI(); save();
+}
+function sellItemNow(idx){
+  const item = S.resale.inventory[idx];
+  if(!item || item.sold) return;
+  const fastPrice = Math.floor(calcListPrice(item) * 0.65);
+  S.money += fastPrice; S.totalEarned += fastPrice;
+  item.sold = true; item.soldPrice = fastPrice;
+  gainXP(item, fastPrice);
+  toast('💨 Быстро: ' + rub(fastPrice));
+  updateUI(); save();
+}
+function gainXP(item, price){
+  const intBonus = 1 + Math.max(0, getAttr('int') - 5) * 0.02;
+  const xp = Math.floor((item.base / 100) * RARITY[item.rarity].xpMult + price / 1000) * intBonus;
+  S.character.xp += xp;
+  let nextXP = S.character.level * 500;
+  while(S.character.xp >= nextXP){
+    S.character.xp -= nextXP;
+    S.character.level++;
+    S.character.attrPoints++;
+    S.resale.skillPoints++;
+    nextXP = S.character.level * 500;
+    toast('🎉 Уровень ' + S.character.level + '! +1 атрибут, +1 навык');
+    checkUnlocks();
+  }
+}
+function checkUnlocks(){
+  for(let k in RESALE_CATS){
+    if(S.character.level >= RESALE_CATS[k].unlock && !S.resale.unlockedCats[k]){
+      S.resale.unlockedCats[k] = true;
+      toast('🔓 Открыто: ' + RESALE_CATS[k].name);
+    }
+  }
+}
+function tickSales(dt){
+  const items = S.resale.inventory.filter(i => i.listed && !i.sold);
+  const dexBonus = 1 + Math.max(0, getAttr('dex') - 5) * 0.05;
+  for(const item of items){
+    const marketingBonus = 1 + S.resale.skills.marketing * 0.08;
+    const promoBonus = 1 + item.promoLevel * 0.5;
+    const shopBonus = 1 + S.resale.shopLevel * 0.15;
+    const priceRatio = item.base / item.listedPrice;
+    const priceBonus = Math.max(0.1, Math.min(3, priceRatio * priceRatio));
+    const chance = 0.02 * marketingBonus * promoBonus * shopBonus * priceBonus * dexBonus * dt * 10;
+    if(Math.random() < chance){
+      let price = item.listedPrice;
+      const critChance = Math.max(0, getAttr('luck') - 5) * 0.02;
+      let crit = false;
+      if(Math.random() < critChance){ price *= 2; crit = true; }
+      S.money += price; S.totalEarned += price;
+      item.sold = true; item.soldPrice = price;
+      gainXP(item, price);
+      toast(crit ? '🔥 КРИТ! Продано за ' + rub(price) : '💰 Продано: ' + rub(price));
+    }
+  }
+  if(S.resale.agents > 0){
+    const agentIncome = S.resale.agents * 50 * countryIncome();
+    S.money += agentIncome * dt;
+    S.totalEarned += agentIncome * dt;
+  }
+}
+function upgradeSkill(k){
+  if(S.resale.skillPoints <= 0) return;
+  if(S.resale.skills[k] >= SKILLS[k].max) return;
+  S.resale.skills[k]++;
+  S.resale.skillPoints--;
+  updateUI(); save();
+}
+function buyAgent(){
+  const cost = applyCost(50000 * (S.resale.agents + 1));
+  if(S.money < cost) return;
+  S.money -= cost; S.resale.agents++;
+  updateUI(); save();
+}
+function upgradeShop(){
+  const cost = applyCost(200000 * (S.resale.shopLevel + 1));
+  if(S.money < cost) return;
+  S.money -= cost; S.resale.shopLevel++;
+  updateUI(); save();
+}
+
+/* ---------- ИНВЕСТИЦИИ ---------- */
+function invest(id, amount){
+  const inv = INVESTMENTS.find(x => x.id === id);
+  if(!inv) return;
+  if(amount === 'all') amount = Math.floor(S.money);
+  amount = Math.floor(amount);
+  if(amount <= 0 || S.money < amount || amount < inv.min) return;
+  S.money -= amount;
+  S.inv[id] = (S.inv[id] || 0) + amount;
+  updateUI(); save();
+}
+function withdraw(id){
+  const amount = Math.floor(S.inv[id] || 0);
+  if(amount <= 0) return;
+  S.money += amount; S.inv[id] = 0;
+  updateUI(); save();
+}
+
+/* ---------- ТОСТ ---------- */
+function toast(text){
+  const d = document.createElement('div');
+  d.className = 'toast'; d.textContent = text;
+  $('toasts').appendChild(d);
+  setTimeout(() => d.remove(), 2600);
+}
+function checkAchievements(){
+  for(const a of ACH){
+    if(!S.ach[a.id] && a.check(S)){
+      S.ach[a.id] = true;
+      toast('🏆 ' + a.name);
+      updateAchGrid();
+    }
+  }
+}
+
+/* ---------- РЕНДЕР РЕСЕЙЛА ---------- */
+function renderResale(){
+  const type = currentResaleTab;
+  const isDev = type === 'dev';
+  $('resale-market').style.display = isDev ? 'none' : 'block';
+  $('resale-dev').style.display = isDev ? 'block' : 'none';
+  if(isDev){ renderDev(); return; }
+  if(!S.resale.unlockedCats[type]){
+    $('resaleLots').innerHTML = '<p class="note">🔒 Откроется на ' + RESALE_CATS[type].unlock + ' уровне</p>';
+    $('resaleInventory').innerHTML = '';
+    return;
+  }
+  $('resaleLevel').textContent = S.character.level;
+  $('resaleXPText').textContent = S.character.xp + ' XP';
+  $('resaleSlots').textContent = S.resale.inventory.filter(i => !i.sold).length;
+  $('resaleSlotsMax').textContent = getSlotsMax();
+
+  const lots = S.resale.lots.filter(l => l.category === type);
+  const lotsWrap = $('resaleLots');
+  lotsWrap.innerHTML = '';
+  if(lots.length === 0){
+    const secLeft = Math.max(0, 45 - Math.floor((Date.now() - S.resale.lastLotRefresh) / 1000));
+    lotsWrap.innerHTML = '<p class="note">Лоты обновятся через ' + secLeft + ' сек...</p>';
+  }
+  lots.forEach(lot => {
+    const rar = RARITY[lot.rarity];
+    const card = document.createElement('div');
+    card.className = 'lot-card';
+    card.innerHTML = `
+      <div class="lot-top">
+        <div class="lot-title">${lot.icon} ${lot.name}</div>
+        <div class="lot-rarity ${rar.color}">${rar.name}</div>
+      </div>
+      <div class="lot-price-line">
+        <span class="lot-buy">💰 ${rub(lot.buyPrice)}</span>
+        <span class="lot-market">база: ${rub(lot.base)} · спрос: ${lot.demand.toFixed(1)}×</span>
+      </div>
+      <div class="lot-attrs">
+        <div class="attr"><span>Состояние</span><b>${lot.condition}%</b></div>
+        <div class="attr"><span>Комплект</span><b>${lot.completeness}%</b></div>
+        <div class="attr"><span>Бренд</span><b>${lot.brand}</b></div>
+        <div class="attr"><span>Дефекты</span><b>${lot.defects.length}</b></div>
+      </div>
+      <div class="lot-actions">
+        <button class="blue" onclick="haggle('${lot.id}')" ${lot.haggleTried ? 'disabled' : ''}>${lot.haggleTried ? 'Торг был' : '🤝 Торг'}</button>
+        <button class="primary" onclick="buyLot('${lot.id}')" ${S.money < lot.buyPrice ? 'disabled' : ''}>Купить</button>
+      </div>
+    `;
+    lotsWrap.appendChild(card);
+  });
+
+  const invWrap = $('resaleInventory');
+  invWrap.innerHTML = '';
+  const items = S.resale.inventory.filter(i => !i.sold);
+  if(items.length === 0){ invWrap.innerHTML = '<p class="note">Пусто. Купи что-нибудь!</p>'; return; }
+  items.forEach(item => {
+    const idx = S.resale.inventory.indexOf(item);
+    const catIcon = RESALE_CATS[item.category].icon;
+    const rar = RARITY[item.rarity];
+    const card = document.createElement('div');
+    card.className = 'lot-card' + (item.listed ? ' sold-state' : '');
+    let defectsHtml = '';
+    if(item.defects.length > 0){
+      defectsHtml = '<div style="font-size:10px;color:var(--red);margin-bottom:6px">Дефекты: ' +
+        item.defects.map((d,i) => `<span style="background:#3d1a1a;padding:2px 5px;border-radius:6px;margin-right:3px;cursor:pointer" onclick="fixDefect(${idx},${i})">${d.name}</span>`).join('') + '</div>';
+    }
+    card.innerHTML = `
+      <div class="lot-top">
+        <div class="lot-title">${catIcon} ${item.icon} ${item.name}</div>
+        <div class="lot-rarity ${rar.color}">${rar.name}</div>
+      </div>
+      <div class="lot-price-line">
+        <span class="lot-buy">${item.listed ? '🏷️ ' + rub(item.listedPrice) : 'Куплено'}</span>
+        <span class="lot-market">база: ${rub(item.base)} · спрос: ${item.demand.toFixed(1)}×</span>
+      </div>
+      <div class="lot-attrs">
+        <div class="attr"><span>Состояние</span><b>${Math.floor(item.condition)}%</b></div>
+        <div class="attr"><span>Комплект</span><b>${item.completeness}%</b></div>
+        <div class="attr"><span>Фото</span><b>${item.photoQuality}%</b></div>
+        <div class="attr"><span>Промо</span><b>${item.promoLevel}/3</b></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${item.condition}%"></div></div>
+      ${defectsHtml}
+      <div class="lot-actions" style="margin-top:6px">
+        <button onclick="repairItem(${idx})" class="green">🔧</button>
+        <button onclick="cleanItem(${idx})">🧼</button>
+        <button onclick="photoItem(${idx})">📸</button>
+        <button onclick="promoteItem(${idx})" ${item.promoLevel >= 3 ? 'disabled' : ''}>📢</button>
+        ${item.listed
+          ? `<button class="red" onclick="unlistItem(${idx})">Снять</button>`
+          : `<button class="primary" onclick="listItem(${idx})">Выставить (${rub(calcListPrice(item))})</button>`}
+        <button class="primary" onclick="sellItemNow(${idx})">⚡ Быстро</button>
+      </div>
+    `;
+    invWrap.appendChild(card);
+  });
+}
+
+function renderDev(){
+  $('devLevel').textContent = S.character.level;
+  $('devXP').textContent = S.character.xp;
+  $('devXPNext').textContent = S.character.level * 500;
+  $('devXPBar').style.width = Math.min(100, (S.character.xp / (S.character.level * 500)) * 100) + '%';
+  $('devSkillPoints').textContent = S.resale.skillPoints;
+
+  const skillsWrap = $('skillsList');
+  skillsWrap.innerHTML = '';
+  for(let k in SKILLS){
+    const sk = SKILLS[k];
+    const lvl = S.resale.skills[k];
+    const maxed = lvl >= sk.max;
+    const row = document.createElement('div');
+    row.className = 'skill-row';
+    row.innerHTML = `
+      <div class="skill-top">
+        <div class="skill-name">${sk.icon} ${sk.name}</div>
+        <div class="skill-lvl">${lvl}/${sk.max}</div>
+      </div>
+      <div class="skill-desc">${sk.desc}</div>
+      <div class="skill-bar"><div class="skill-bar-fill" style="width:${(lvl/sk.max)*100}%"></div></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px">
+        <button class="buy purple" onclick="upgradeSkill('${k}')" ${S.resale.skillPoints <= 0 || maxed ? 'disabled' : ''}>${maxed ? '✅ MAX' : 'Улучшить (1 SP)'}</button>
+      </div>
+    `;
+    skillsWrap.appendChild(row);
+  }
+
+  const agentCost = applyCost(50000 * (S.resale.agents + 1));
+  $('agentsList').innerHTML = `
+    <div class="card">
+      <div class="ico">🕵️</div>
+      <div class="info">
+        <div class="name">Агенты: ${S.resale.agents}</div>
+        <div class="sub">Пассив: <b>${fmt(S.resale.agents * 50 * countryIncome())} ₽/сек</b></div>
+      </div>
+      <button class="buy" onclick="buyAgent()" ${S.money < agentCost ? 'disabled' : ''}>Нанять<b>${rub(agentCost)}</b></button>
+    </div>
+  `;
+  const shopCost = upgradeShopCost();
+  $('shopList').innerHTML = `
+    <div class="card">
+      <div class="ico">🏬</div>
+      <div class="info">
+        <div class="name">Магазин: ур. ${S.resale.shopLevel}</div>
+        <div class="sub">Скорость: <b>+${(S.resale.shopLevel * 15)}%</b></div>
+      </div>
+      <button class="buy green" onclick="upgradeShop()" ${S.money < shopCost ? 'disabled' : ''}>Улучшить<b>${rub(shopCost)}</b></button>
+    </div>
+  `;
+}
+function upgradeShopCost(){ return applyCost(200000 * (S.resale.shopLevel + 1)); }
+
+/* ---------- РЕНДЕР ПЕРСОНАЖА ---------- */
+function renderCharacter(){
+  if(!S.character) return;
+  const app = APPEARANCES.find(a => a.id === S.character.appearance) || APPEARANCES[0];
+  const country = getCountry();
+  $('charAvatar').textContent = app.icon;
+  $('charName').textContent = S.character.name;
+  $('charCountryDisplay').textContent = country.flag + ' ' + country.name;
+  $('headerAvatar').textContent = app.icon;
+  $('careerInlineName').textContent = CAREER[careerIndex()].name;
+  $('charLevel').textContent = S.character.level;
+  const nextXP = S.character.level * 500;
+  $('charXPCurrent').textContent = S.character.xp;
+  $('charXPNext').textContent = nextXP;
+  $('charXPBar').style.width = Math.min(100, (S.character.xp / nextXP) * 100) + '%';
+  $('charAttrPoints').textContent = S.character.attrPoints;
+  $('charSkillPoints').textContent = S.resale.skillPoints;
+
+  const wrap = $('attributesList');
+  wrap.innerHTML = '';
+  for(let k in ATTRIBUTES){
+    const attr = ATTRIBUTES[k];
+    const val = S.character.attributes[k];
+    const row = document.createElement('div');
+    row.className = 'attr-row';
+    row.innerHTML = `
+      <div class="attr-icon">${attr.icon}</div>
+      <div class="attr-info">
+        <div class="attr-name">${attr.name}</div>
+        <div class="attr-desc">${attr.desc}</div>
+      </div>
+      <div class="attr-value">${val}/${ATTR_MAX}</div>
+      <button class="attr-up" onclick="upgradeAttr('${k}')" ${S.character.attrPoints <= 0 || val >= ATTR_MAX ? 'disabled' : ''}>+</button>
+    `;
+    wrap.appendChild(row);
+  }
+}
+function upgradeAttr(key){
+  if(!S.character || S.character.attrPoints <= 0) return;
+  if(S.character.attributes[key] >= ATTR_MAX) return;
+  S.character.attributes[key]++;
+  S.character.attrPoints--;
+  updateUI(); save();
+}
+
+/* ---------- ПОСТРОЕНИЕ СПИСКОВ ---------- */
+let upgRows = {};
+function buildUpgradeList(){
+  const wrap = $('upgradesList');
+  wrap.innerHTML = '';
+  CLICK_UPGRADES.forEach(u => {
+    const cost = applyCost(u.cost);
+    const row = document.createElement('div');
+    row.className = 'card';
+    row.innerHTML = `
+      <div class="ico">${u.icon}</div>
+      <div class="info"><div class="name">${u.name}</div><div class="sub">Клик ×${u.mult}</div></div>
+      <button class="buy" onclick="buyUpgrade('${u.id}')"><span class="lbl">Купить</span><b class="cost">${rub(cost)}</b></button>
+    `;
+    wrap.appendChild(row);
+    upgRows[u.id] = {btn: row.querySelector('.buy'), lbl: row.querySelector('.lbl'), costEl: row.querySelector('.cost')};
+  });
+}
+function buyUpgrade(id){
+  const u = CLICK_UPGRADES.find(x => x.id === id);
+  if(!u || S.upg[u.id]) return;
+  const cost = applyCost(u.cost);
+  if(S.money < cost) return;
+  S.money -= cost; S.upg[u.id] = true; S.clickMult *= u.mult;
+  updateUI(); save();
+}
+
+function buildMarketUpgrades(){
+  const wrap = $('marketUpgrades');
+  wrap.innerHTML = '';
+  const ups = [
+    {id:'warehouse', icon:'🏭', name:'Склад', desc:'+вместимость'},
+    {id:'logistics', icon:'🚚', name:'Логистика', desc:'×2 продажи'},
+    {id:'brand', icon:'⭐', name:'Бренд', desc:'+50% к цене'}
+  ];
+  ups.forEach(u => {
+    const row = document.createElement('div');
+    row.className = 'card';
+    row.innerHTML = `
+      <div class="ico">${u.icon}</div>
+      <div class="info"><div class="name">${u.name}</div><div class="sub">${u.desc}</div></div>
+      <button class="buy" onclick="buyMarketUpgrade('${u.id}')" id="mktUp_${u.id}">Купить</button>
+    `;
+    wrap.appendChild(row);
+  });
+}
+function buildPvzUpgrades(){
+  $('pvzUpgrades').innerHTML = `
+    <div class="card">
+      <div class="ico">👥</div>
+      <div class="info"><div class="name">Нанять сотрудника</div><div class="sub">+1.5 заказа/сек</div></div>
+      <button class="buy" onclick="hirePvzEmployee()" id="pvzHireBtn">Нанять</button>
+    </div>
+    <div class="card">
+      <div class="ico">⭐</div>
+      <div class="info"><div class="name" id="pvzUpTitle">Открыть ПВЗ</div><div class="sub" id="pvzUpDesc">Стартовый пункт выдачи</div></div>
+      <button class="buy" onclick="upgradePvz()" id="pvzUpBtn">Открыть</button>
+    </div>
+  `;
+}
+
+let invRows = {};
+function buildInvList(){
+  const wrap = $('invList');
+  wrap.innerHTML = '';
+  INVESTMENTS.forEach(v => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="font-size:22px">${v.icon}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600">${v.name}</div>
+          <div style="font-size:10.5px;color:var(--dim)">+${(v.rate*100).toFixed(2).replace('.', ',')}%/сек · мин. ${rub(v.min)}</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:6px">
+        <span>Вложено: <b class="dep" style="color:#fff">0 ₽</b></span>
+        <span class="inc" style="color:var(--green)">+0 ₽/сек</span>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="buy" onclick="invest('${v.id}', ${v.min})">Мин.</button>
+        <button class="buy" onclick="invest('${v.id}', 'all')">Всё</button>
+        <button class="buy" onclick="withdraw('${v.id}')">Забрать</button>
+      </div>
+    `;
+    wrap.appendChild(card);
+    invRows[v.id] = {
+      dep: card.querySelector('.dep'),
+      inc: card.querySelector('.inc'),
+      minBtn: card.querySelector('button:nth-child(1)'),
+      allBtn: card.querySelector('button:nth-child(2)'),
+      outBtn: card.querySelector('button:nth-child(3)')
+    };
+  });
+}
+
+let achEls = {};
+function buildAchGrid(){
+  const wrap = $('achGrid');
+  wrap.innerHTML = '';
+  ACH.forEach(a => {
+    const d = document.createElement('div');
+    d.className = 'ach';
+    d.innerHTML = `<div class="ai">${a.icon}</div><div class="an">${a.name}</div>`;
+    wrap.appendChild(d);
+    achEls[a.id] = d;
+  });
+  updateAchGrid();
+}
+function updateAchGrid(){
+  ACH.forEach(a => { if(achEls[a.id]) achEls[a.id].classList.toggle('done', !!S.ach[a.id]); });
+}
+
+/* ---------- ОБНОВЛЕНИЕ UI ---------- */
+function updateUI(){
+  try{
+    if(!S.character) return;
+    $('money').textContent = rub(S.money);
+    $('rate').textContent = '+' + rub(incomePerSec()) + '/сек';
+    const ci = careerIndex();
+    $('careerName').textContent = CAREER[ci].name;
+    $('clickVal').textContent = rub(clickValue());
+    $('clickCount').textContent = fmt(S.clicks);
+
+    CLICK_UPGRADES.forEach(u => {
+      const r = upgRows[u.id]; if(!r) return;
+      const cost = applyCost(u.cost);
+      if(S.upg[u.id]){ r.btn.disabled = true; r.lbl.textContent = '✅'; r.costEl.textContent = '—'; }
+      else { r.btn.disabled = S.money < cost; r.lbl.textContent = 'Купить'; r.costEl.textContent = rub(cost); }
+    });
+
+    updateMarketStats();
+    $('stockCost').textContent = rub(applyCost(1000));
+    const m = S.biz.market;
+    const mktCosts = {warehouse:5000, logistics:20000, brand:100000};
+    for(let id in mktCosts){
+      const btn = $('mktUp_' + id);
+      if(btn){
+        const cost = applyCost(mktCosts[id]);
+        if(m.upgrades[id]){btn.disabled=true; btn.textContent='✅';}
+        else {btn.disabled=S.money<cost; btn.textContent=rub(cost);}
+      }
+    }
+
+    updatePvzStats();
+    const p = S.biz.pvz;
+    const hireBtn = $('pvzHireBtn'), upBtn = $('pvzUpBtn');
+    const upTitle = $('pvzUpTitle'), upDesc = $('pvzUpDesc');
+    if(hireBtn){ const c = applyCost(10000 * (p.employees + 1)); hireBtn.disabled = S.money < c || p.level === 0; hireBtn.textContent = rub(c); }
+    if(upBtn){
+      const c = applyCost(50000 * (p.level + 1));
+      upBtn.disabled = S.money < c;
+      upBtn.textContent = p.level === 0 ? 'Открыть' : rub(c);
+    }
+    if(upTitle) upTitle.textContent = p.level === 0 ? 'Открыть ПВЗ' : 'Улучшить ПВЗ';
+    if(upDesc) upDesc.textContent = p.level === 0 ? 'Стартовый пункт выдачи' : '+2 заказа/сек за уровень';
+
+    INVESTMENTS.forEach(v => {
+      const r = invRows[v.id]; if(!r) return;
+      const dep = S.inv[v.id] || 0;
+      r.dep.textContent = rub(dep);
+      r.inc.textContent = '+' + rub(dep * v.rate * globalMult() * countryIncome()) + '/сек';
+      r.minBtn.disabled = S.money < v.min;
+      r.allBtn.disabled = S.money < v.min;
+      r.outBtn.disabled = dep <= 0;
+    });
+    $('invTotal').textContent = rub(totalInvested());
+    $('achCount').textContent = achCount() + ' / ' + ACH.length;
+
+    if($('p-resale').classList.contains('active')) renderResale();
+    if($('p-char').classList.contains('active')) renderCharacter();
+  }catch(e){ console.error('updateUI:', e); }
+}
+
+/* ---------- ПЕРЕКЛЮЧЕНИЕ ---------- */
+function showTab(name, btn){
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  $('p-' + name).classList.add('active');
+  if(name === 'resale') renderResale();
+  if(name === 'char') renderCharacter();
+}
+function switchBizTab(tab, btn){
+  currentBizTab = tab;
+  document.querySelectorAll('#p-biz .sub-tabs button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  $('biz-market').style.display = tab === 'market' ? 'block' : 'none';
+  $('biz-pvz').style.display = tab === 'pvz' ? 'block' : 'none';
+}
+function switchResaleTab(tab, btn){
+  currentResaleTab = tab;
+  document.querySelectorAll('#resaleSubTabs button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderResale();
+}
+function resetGame(){
+  if(confirm('Сбросить персонажа и весь прогресс?')){
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  }
+}
+
+/* ---------- ЦИКЛ ---------- */
+let lastT = performance.now();
+let saveTimer = 0;
+function tick(){
+  if(!S.character) return;
+  const now = performance.now();
+  let dt = (now - lastT) / 1000;
+  lastT = now;
+  if(dt > 1) dt = 1;
+  if(dt < 0) dt = 0;
+
+  const gain = incomePerSec() * dt;
+  if(gain > 0){ S.money += gain; S.totalEarned += gain; }
+
+  /* ФИКС: склад уменьшается корректно с плавающей точкой */
+  const m = S.biz.market;
+  if(m.sales > 0 && m.stock > 0){
+    m.stock = Math.max(0, m.stock - m.sales * dt);
+  }
+  updateMarketStats();
+  tickSales(dt);
+
+  if(Date.now() - S.resale.lastLotRefresh > 45000){ generateLots(); }
+
+  updateUI();
+  checkAchievements();
+
+  saveTimer += dt;
+  if(saveTimer > 5){ saveTimer = 0; save(); }
+}
+
+/* ---------- ЭКРАН СОЗДАНИЯ ---------- */
+let selectedAppearance = null;
+let selectedCountry = null;
+
+function renderCreationScreen(){
+  const appGrid = $('appearanceGrid');
+  appGrid.innerHTML = '';
+  APPEARANCES.forEach(app => {
+    const card = document.createElement('div');
+    card.className = 'appearance-card' + (selectedAppearance === app.id ? ' selected' : '');
+    const bonusText = Object.entries(app.bonuses).map(([k,v]) => '+' + v + ' ' + ATTRIBUTES[k].name.slice(0,3)).join(', ');
+    card.innerHTML = `
+      <div class="emoji">${app.icon}</div>
+      <div class="name">${app.name}</div>
+      <div class="bonus">${bonusText}</div>
+    `;
+    card.onclick = () => { selectedAppearance = app.id; renderCreationScreen(); updateStartBtn(); };
+    appGrid.appendChild(card);
+  });
+  const cGrid = $('countryGrid');
+  cGrid.innerHTML = '';
+  COUNTRIES.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'country-card' + (selectedCountry === c.id ? ' selected' : '');
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div class="flag">${c.flag}</div>
+        <div class="diff" style="background:${c.diffColor}22;color:${c.diffColor}">${c.diff}</div>
+      </div>
+      <div class="name">${c.name}</div>
+      <div class="desc">${c.desc}</div>
+      <div class="mult">×${c.incomeMult} доход · ×${c.costMult} цены</div>
+      ${c.startMoney > 0 ? '<div style="font-size:9.5px;color:var(--gold);margin-top:2px">Старт: ' + c.startMoney + ' ₽</div>' : ''}
+    `;
+    card.onclick = () => { selectedCountry = c.id; renderCreationScreen(); updateStartBtn(); };
+    cGrid.appendChild(card);
+  });
+}
+function updateStartBtn(){ $('startGameBtn').disabled = !selectedAppearance || !selectedCountry; }
+function showCreationScreen(){
+  $('creationOverlay').classList.remove('hide');
+  $('app').style.display = 'none';
+  renderCreationScreen();
+  updateStartBtn();
+}
+function startGameWithCharacter(){
+  if(!selectedAppearance || !selectedCountry) return;
+  const app = APPEARANCES.find(a => a.id === selectedAppearance);
+  const country = COUNTRIES.find(c => c.id === selectedCountry);
+  const nameInput = ($('charNameInput').value || 'Бомж').trim() || 'Бомж';
+
+  S = defaultState();
+  S.money = country.startMoney;
+  S.character = {
+    name: nameInput, appearance: selectedAppearance, country: selectedCountry,
+    level: 1, xp: 0, attrPoints: 0,
+    attributes: {
+      str: 5 + (app.bonuses.str || 0),
+      dex: 5 + (app.bonuses.dex || 0),
+      int: 5 + (app.bonuses.int || 0),
+      cha: 5 + (app.bonuses.cha || 0),
+      luck: 5 + (app.bonuses.luck || 0)
+    }
+  };
+  save();
+  $('creationOverlay').classList.add('hide');
+  $('app').style.display = 'flex';
+  startGame();
+}
+
+function startGame(){
+  buildUpgradeList();
+  buildInvList();
+  buildAchGrid();
+  buildMarketUpgrades();
+  buildPvzUpgrades();
+  if(S.resale.lots.length === 0) generateLots();
+  applyOffline();
+  lastT = performance.now();
+  updateUI();
+  renderCharacter();
+  document.addEventListener('visibilitychange', () => { if(document.hidden) save(); });
+  window.addEventListener('beforeunload', save);
+  if(gameInterval) clearInterval(gameInterval);
+  gameInterval = setInterval(tick, 100);
+}
+
+/* ---------- ИНИЦИАЛИЗАЦИЯ ---------- */
+function init(){
+  console.log('🚀 Запуск v3.1...');
+  load();
+  if(!S.character){ showCreationScreen(); }
+  else { $('creationOverlay').classList.add('hide'); startGame(); }
+}
+
+if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); }
+else { init(); }
+</script>
+</body>
+</html>
